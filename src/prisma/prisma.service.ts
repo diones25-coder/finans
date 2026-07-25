@@ -12,7 +12,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         'DATABASE_URL não foi encontrada nas variáveis de ambiente.',
       );
     }
-    const pool = new Pool({ connectionString });
+    const pool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    });
     const adapter = new PrismaPg(pool);
     super({ adapter });
   }
