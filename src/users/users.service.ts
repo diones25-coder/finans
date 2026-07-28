@@ -42,6 +42,14 @@ export class UsersService {
     });
   }
 
+  async userExists(id: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    return !!user;
+  }
+
   async findByEmail(email: string) {
     this.logger.log(`Buscando o usuario pelo email ${email}`);
     return this.prisma.user.findUnique({ where: { email } });
