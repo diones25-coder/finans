@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CategoryService } from '../category/category.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpentDto } from './dto/create-spent.dto';
@@ -64,9 +65,11 @@ export class SpentService {
       const skip = (page - 1) * pageSize;
       const take = pageSize;
 
-      const spents = await this.listAllSpents(skip, take, userId);
+      const where = this.buildWhereClause(paginationDto, userId);
 
-      const totalSpents = await this.totalSpentsCount(userId);
+      const spents = await this.listAllSpents(skip, take, where);
+
+      const totalSpents = await this.prisma.spent.count({ where });
       const totalPages = Math.ceil(totalSpents / pageSize);
 
       const data = {
@@ -108,9 +111,9 @@ export class SpentService {
     return this.prisma.spent.delete({ where: { id } });
   }
 
-  async listAllSpents(skip: number, take: number, userId: string) {
+  async listAllSpents(skip: number, take: number, where: Prisma.SpentWhereInput) {
     const spents = await this.prisma.spent.findMany({
-      where: { userId },
+      where,
       orderBy: [
         {
           createdAt: 'desc',
@@ -135,8 +138,37 @@ export class SpentService {
     return spents;
   }
 
-  async totalSpentsCount(userId: string) {
-    return await this.prisma.spent.count({ where: { userId } });
+  private buildWhereClause(paginationDto: PaginationDto, userId: string): Prisma.SpentWhereInput {
+    const where: Prisma.SpentWhereInput = { userId };
+
+    if (paginationDto.search) {
+      where.description = {
+        contains: paginationDto.search,
+        mode: 'insensitive',
+      };
+    }
+
+    if (paginationDto.startDate || paginationDto.endDate) {
+      where.createdAt = {};
+
+      if (paginationDto.startDate) {
+        where.createdAt = {
+          ...where.createdAt,
+          gte: new Date(paginationDto.startDate),
+        };
+      }
+
+      if (paginationDto.endDate) {
+        const endDate = new Date(paginationDto.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        where.createdAt = {
+          ...where.createdAt,
+          lte: endDate,
+        };
+      }
+    }
+
+    return where;
   }
 
   async spentNotFound(id: string, userId: string) {

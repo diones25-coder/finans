@@ -88,7 +88,7 @@ export class SpentController {
   @ApiOperation({
     summary: 'Listando todos os gastos',
     description:
-      'Endpoint responsável por listar todos os gastos com paginação',
+      'Endpoint responsavel por listar todos os gastos com paginacao, busca por nome e filtro por data',
   })
   @ApiResponse({
     status: 200,
